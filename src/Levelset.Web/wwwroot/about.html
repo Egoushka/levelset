@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>About Levelset</title>
+<meta name="description" content="What Levelset checks, how it fetches your site, and how to run it in your own CI.">
+<link rel="llms-txt" href="/llms.txt">
+<style>body{font:16px/1.5 system-ui,sans-serif;max-width:46rem;margin:2rem auto;padding:0 1rem}</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"AboutPage","name":"About Levelset","url":"/about"}</script>
+</head>
+<body>
+<main>
+<h1>About Levelset</h1>
+<p>Levelset checks how ready a website is for AI agents. It fetches your pages with the user agent <code>Levelset/1</code>, loads the page once in a headless browser to see which WebMCP tools it registers, and talks to an MCP endpoint if it finds one. It refuses private and local addresses.</p>
+<p>It never runs a tool, submits a form or sends a payment. Results are cached for ten minutes.</p>
+<p>To check a private or local site, run the GitHub Action in your own CI: nothing leaves your runner and it costs nothing. The source is at github.com/Egoushka/levelset under the FSL-1.1-ALv2 license.</p>
+<p><a href="/">Back to the check</a></p>
+</main>
+</body>
+</html>

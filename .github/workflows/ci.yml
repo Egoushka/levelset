@@ -8,7 +8,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
         with:
@@ -17,4 +17,6 @@ jobs:
         with:
           global-json-file: global.json
       - run: dotnet build -c Release
+      # The dogfood test loads Levelset in Chromium, so the browser must be installed.
+      - run: pwsh tests/Levelset.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
       - run: dotnet test -c Release --no-build

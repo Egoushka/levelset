@@ -11,5 +11,7 @@
   <ItemGroup>
     <Using Include="Xunit" />
     <ProjectReference Include="..\..\src\Levelset.Core\Levelset.Core.csproj" />
+    <ProjectReference Include="..\..\src\Levelset.Browser\Levelset.Browser.csproj" />
+    <ProjectReference Include="..\..\src\Levelset.Web\Levelset.Web.csproj" />
   </ItemGroup>
 </Project>
