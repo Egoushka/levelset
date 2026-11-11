@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Levelset.Browser</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Playwright" Version="1.64.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Levelset.Core\Levelset.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="recorder.js;collect.js" />
+  </ItemGroup>
+</Project>

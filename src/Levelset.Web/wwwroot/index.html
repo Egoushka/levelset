@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Levelset: is your site ready for AI agents?</title>
+<meta name="description" content="Paste a URL and get a score out of 100 for WebMCP, MCP, x402, llms.txt and more, with a fix for every finding.">
+<link rel="llms-txt" href="/llms.txt">
+<link rel="mcp" href="/mcp">
+<style>
+body{font:16px/1.5 system-ui,sans-serif;max-width:46rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a;background:#fff}
+input{width:100%;padding:.6rem;font:inherit;box-sizing:border-box}
+button{margin-top:.6rem;padding:.6rem 1.1rem;font:inherit}
+.score{font-size:3rem;font-weight:700}
+.error{color:#a40000}.warning{color:#8a5a00}.info{color:#555}
+details{margin:.4rem 0}pre{white-space:pre-wrap;background:#f4f4f4;padding:.5rem}
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Levelset","url":"/","description":"Checks how ready a website is for AI agents: WebMCP, MCP, x402, llms.txt, robots and more.","applicationCategory":"DeveloperApplication","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+</head>
+<body>
+<main>
+<h1>Levelset</h1>
+<p>Paste the address of a site and see how ready it is for AI agents. You get a score out of 100, and for every finding a fix you can copy.</p>
+<form id="check" action="/api/v1/check" method="get">
+<label for="url">Site address</label>
+<input id="url" name="url" type="url" placeholder="https://example.com" required>
+<button type="submit">Check</button>
+</form>
+<p id="status" role="status"></p>
+<section id="result" aria-live="polite"></section>
+<h2>What it looks at</h2>
+<ul>
+<li>WebMCP tools the page registers: names, descriptions, schemas and whether risky tools are marked.</li>
+<li>An MCP server, if the site has one: that it answers, lists tools well and rejects foreign origins.</li>
+<li>An x402 payment challenge, if the site charges: that it is well formed and priced sensibly.</li>
+<li>llms.txt, robots.txt, a sitemap, markdown for agents, structured data and basic hygiene.</li>
+</ul>
+<p>The check only reads. It never runs a tool, submits a form or sends a payment. The check is free and needs no account. <a href="/about">About Levelset</a>.</p>
+</main>
+<script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+# Levelset
+
+> Checks how ready a website is for AI agents and returns a score out of 100 with a fix for every finding.
+
+## Use it
+
+- [Check a site](/): the web page; paste an address and read the result
+- [About](/about): what is checked, how pages are fetched and the limits
+
+## For agents
+
+- [MCP server card](/.well-known/mcp/server-card.json): the check_site tool, over Streamable HTTP at /mcp
+- [Sitemap](/sitemap.xml): the pages of this site
