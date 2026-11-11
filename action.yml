@@ -1,0 +1,121 @@
+name: Levelset
+description: Score a site for AI-agent readiness (WebMCP, MCP, x402, llms.txt) in your own CI, with a baseline and a gate.
+branding:
+  icon: check-circle
+  color: green
+inputs:
+  url:
+    description: Address to check. Use a localhost address together with start-command.
+    required: true
+  start-command:
+    description: Command that starts your site in the background (for localhost checks). Leave empty for a deployed site.
+    default: ""
+  wait-seconds:
+    description: How long to wait for the url to answer after start-command.
+    default: "60"
+  fail-below:
+    description: Fail when the score is under this number.
+    default: "0"
+  fail-on-drop:
+    description: Fail when the score lost more than this many points against the baseline. Empty turns it off.
+    default: ""
+  fail-on:
+    description: Fail on a new finding at this level, error, warning or none.
+    default: error
+  baseline:
+    description: Baseline file to compare with. A missing file means no baseline.
+    default: levelset-baseline.json
+  update-baseline:
+    description: Write the result to the baseline file instead of gating. Commit the file yourself.
+    default: "false"
+  mcp-endpoint:
+    description: MCP endpoint to check when the site does not advertise one.
+    default: ""
+  paid-path:
+    description: Path to probe for an x402 402 challenge.
+    default: ""
+  facilitator:
+    description: x402 facilitator address for the /supported check.
+    default: ""
+  browser:
+    description: "chrome uses the Chrome on the runner for the WebMCP check; none skips it."
+    default: chrome
+  comment:
+    description: Post the new and fixed findings as a pull request comment (needs pull-requests write).
+    default: "true"
+outputs:
+  score:
+    description: The score out of 100.
+    value: ${{ steps.check.outputs.score }}
+  grade:
+    description: The letter grade.
+    value: ${{ steps.check.outputs.grade }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: 10.0.x
+    - name: Build Levelset
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+      run: dotnet build "$ACTION_PATH/src/Levelset.Cli" -c Release -o "$RUNNER_TEMP/levelset" --nologo -v q
+    - name: Start the site
+      if: inputs.start-command != ''
+      shell: bash
+      env:
+        START: ${{ inputs.start-command }}
+        TARGET: ${{ inputs.url }}
+        WAIT: ${{ inputs.wait-seconds }}
+      run: |
+        nohup bash -c "$START" > "$RUNNER_TEMP/site.log" 2>&1 &
+        for _ in $(seq 1 "$WAIT"); do
+          if curl -fsS -o /dev/null "$TARGET"; then exit 0; fi
+          sleep 1
+        done
+        echo "::error::$TARGET did not answer within $WAIT seconds"
+        tail -n 40 "$RUNNER_TEMP/site.log"
+        exit 1
+    - name: Check
+      id: check
+      shell: bash
+      env:
+        TARGET: ${{ inputs.url }}
+        FAIL_BELOW: ${{ inputs.fail-below }}
+        FAIL_ON_DROP: ${{ inputs.fail-on-drop }}
+        FAIL_ON: ${{ inputs.fail-on }}
+        BASELINE: ${{ inputs.baseline }}
+        UPDATE: ${{ inputs.update-baseline }}
+        MCP: ${{ inputs.mcp-endpoint }}
+        PAID: ${{ inputs.paid-path }}
+        FACILITATOR: ${{ inputs.facilitator }}
+        BROWSER: ${{ inputs.browser }}
+      run: |
+        args=(check "$TARGET" --fail-below "$FAIL_BELOW" --fail-on "$FAIL_ON" --baseline "$BASELINE"
+          --json "$RUNNER_TEMP/levelset-report.json" --markdown "$RUNNER_TEMP/levelset-comment.md")
+        [ -n "$FAIL_ON_DROP" ] && args+=(--fail-on-drop "$FAIL_ON_DROP")
+        [ "$UPDATE" = "true" ] && args+=(--update-baseline)
+        [ -n "$MCP" ] && args+=(--mcp "$MCP")
+        [ -n "$PAID" ] && args+=(--paid-path "$PAID")
+        [ -n "$FACILITATOR" ] && args+=(--facilitator "$FACILITATOR")
+        if [ "$BROWSER" = "none" ]; then args+=(--no-browser); else export LEVELSET_CHROME_CHANNEL="$BROWSER"; fi
+        status=0
+        "$RUNNER_TEMP/levelset/levelset" "${args[@]}" || status=$?
+        echo "status=$status" >> "$GITHUB_OUTPUT"
+        exit 0
+    - name: Comment on the pull request
+      if: inputs.comment == 'true' && github.event_name == 'pull_request'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PR: ${{ github.event.pull_request.number }}
+        REPO: ${{ github.repository }}
+      run: |
+        gh pr comment "$PR" --repo "$REPO" --edit-last --create-if-none --body-file "$RUNNER_TEMP/levelset-comment.md" \
+          || echo "::notice::Could not post the comment (the workflow needs pull-requests: write); the result is in the job summary."
+    - name: Apply the gate
+      shell: bash
+      env:
+        STATUS: ${{ steps.check.outputs.status }}
+      run: exit "${STATUS:-2}"

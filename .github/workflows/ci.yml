@@ -20,3 +20,17 @@ jobs:
       # The dogfood test loads Levelset in Chromium, so the browser must be installed.
       - run: pwsh tests/Levelset.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
       - run: dotnet test -c Release --no-build
+  # The Action runs against Levelset itself, started on the runner: the end-to-end path users get.
+  action:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: ./
+        with:
+          url: http://127.0.0.1:5080/
+          start-command: dotnet run --project src/Levelset.Web -c Release --urls http://127.0.0.1:5080 --Levelset:AllowPrivate=true
+          fail-below: "100"
+          comment: "false"

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>levelset</AssemblyName>
+    <RootNamespace>Levelset.Cli</RootNamespace>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>levelset</ToolCommandName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Levelset.Core\Levelset.Core.csproj" />
+    <ProjectReference Include="..\Levelset.Browser\Levelset.Browser.csproj" />
+  </ItemGroup>
+</Project>

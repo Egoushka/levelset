@@ -53,6 +53,28 @@ Every request goes through one fetcher that resolves the name itself, refuses lo
 tailnet addresses on every connection (so redirects are covered), caps bodies at 5 MB and time at 15 seconds. The
 browser blocks the same addresses and downloads. The hosted service refuses local targets; run the Action for those.
 
+## GitHub Action
+
+Runs the engine inside your runner, so private and localhost sites are free and nothing leaves your CI. No account
+and no token.
+
+```yaml
+- uses: Egoushka/levelset@v1
+  with:
+    url: http://127.0.0.1:5080/
+    start-command: dotnet run --project src/MySite --urls http://127.0.0.1:5080
+    fail-below: 75          # absolute floor
+    fail-on-drop: 3         # points lost against the baseline
+    fail-on: error          # a new finding at this level fails (error, warning, none)
+    baseline: levelset-baseline.json
+```
+
+Create the baseline once with `update-baseline: true` (or `levelset check <url> --update-baseline`) and commit the
+file. After that only new findings fail the run; findings already in the baseline do not. On pull requests the Action
+posts one comment with the new and fixed findings (it needs `pull-requests: write`; without it the result stays in the
+job summary). The WebMCP check uses the Chrome on the runner; set `browser: none` to skip it. The same thing runs
+locally as `dotnet run --project src/Levelset.Cli -- check <url> --fail-below 75`.
+
 ## Levelset on itself
 
 `DogfoodTests` starts the site, scans it with the real engine and Chrome, and requires a score of 100. A change that
