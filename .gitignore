@@ -1,0 +1,6 @@
+bin/
+obj/
+.claude/worktrees/
+*.log
+.DS_Store
+TestResults/

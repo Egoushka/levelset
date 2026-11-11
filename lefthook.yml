@@ -1,0 +1,19 @@
+# Git hooks, run by lefthook (https://lefthook.dev). After cloning: `lefthook install`.
+# agent-checks messages are written for coding agents: https://github.com/Egoushka/agent-checks
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: agent-checks
+      run: agent-checks check --staged
+    # generic-password and generic-credential-uri are off: 40 hits in 18 repos, none a live secret.
+    - name: betterleaks
+      run: betterleaks git --staged --redact --no-banner --disable-rule generic-password,generic-credential-uri
+    - name: zizmor
+      glob: ".github/workflows/*.{yml,yaml}"
+      run: zizmor --offline --no-progress {staged_files}
+
+pre-push:
+  jobs:
+    - name: dotnet format
+      run: dotnet format --verify-no-changes
