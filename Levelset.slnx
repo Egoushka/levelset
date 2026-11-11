@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Levelset.Browser/Levelset.Browser.csproj" />
+    <Project Path="src/Levelset.Cli/Levelset.Cli.csproj" />
     <Project Path="src/Levelset.Core/Levelset.Core.csproj" />
     <Project Path="src/Levelset.Web/Levelset.Web.csproj" />
   </Folder>
