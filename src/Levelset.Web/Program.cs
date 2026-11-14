@@ -35,10 +35,28 @@ namespace Levelset.Web
             app.UseDefaultFiles();
             app.UseStaticFiles();
 
-            app.MapGet("/api/v1/check", async (string? url, HttpContext ctx, CheckService svc, CancellationToken ct) =>
+            app.MapGet("/api/v1/check", async (string? url, string? format, HttpContext ctx, CheckService svc, CancellationToken ct) =>
             {
-                try { return Results.Json(await svc.CheckAsync(url, Client(ctx), ct), Json); }
+                if (format is not (null or "full" or "agent"))
+                    return Results.Json(new { error = "format must be full or agent" }, Json, statusCode: 400);
+                try
+                {
+                    var report = await svc.CheckAsync(url, Client(ctx), ct);
+                    return format == "agent" ? Results.Json(AgentReport.From(report), Json) : Results.Json(report, Json);
+                }
                 catch (CheckException e) { return Results.Json(new { error = e.Message }, Json, statusCode: e.Status); }
+            });
+            app.MapGet("/badge.svg", async (string? url, HttpContext ctx, CheckService svc, CancellationToken ct) =>
+            {
+                Report? report = null;
+                try { report = await svc.CheckAsync(url, Client(ctx), ct); }
+                catch (CheckException)
+                {
+                    // A refused, limited or unreachable URL is shown as an "unknown" badge, never as an error body.
+                    report = null;
+                }
+                ctx.Response.Headers.CacheControl = report is null ? "no-store" : "public, max-age=600";
+                return Results.Content(Badge.Svg(report), "image/svg+xml");
             });
             app.MapGet("/robots.txt", (HttpContext c) => Results.Text(
                 $"User-agent: *\nAllow: /\n\nUser-agent: GPTBot\nAllow: /\n\nContent-Signal: search=yes, ai-input=yes, ai-train=no\n\nSitemap: {Origin(c)}/sitemap.xml\n",
@@ -122,8 +140,12 @@ namespace Levelset.Web
                     if (req["params"]?["name"]?.ToString() != "check_site") return Reply(id, error: (-32602, "unknown tool"));
                     try
                     {
+                        var format = req["params"]?["arguments"]?["format"]?.ToString();
+                        if (format is not (null or "full" or "agent")) return Reply(id, error: (-32602, "format must be full or agent"));
                         var report = await svc.CheckAsync(req["params"]?["arguments"]?["url"]?.ToString(), Site.Client(c), ct);
-                        var structured = JsonSerializer.SerializeToNode(report, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+                        var structured = format == "agent"
+                            ? JsonSerializer.SerializeToNode(AgentReport.From(report), AgentReport.Json)
+                            : JsonSerializer.SerializeToNode(report, new JsonSerializerOptions(JsonSerializerDefaults.Web));
                         return Reply(id, new JsonObject
                         {
                             ["content"] = new JsonArray(new JsonObject { ["type"] = "text", ["text"] = structured!.ToJsonString() }),
@@ -154,9 +176,9 @@ namespace Levelset.Web
         private static JsonObject Tool() => new()
         {
             ["name"] = "check_site",
-            ["description"] = "Scan a public website and return its agent-readiness score out of 100 with findings and a fix for each. Use it before shipping a site that agents will read or call.",
-            ["inputSchema"] = JsonNode.Parse("""{"type":"object","properties":{"url":{"type":"string","description":"The http or https address of the site to check"}},"required":["url"]}"""),
-            ["outputSchema"] = JsonNode.Parse("""{"type":"object","properties":{"score":{"type":"integer","description":"Score from 0 to 100"},"findings":{"type":"array","description":"What to fix, each with an ID, severity and fix hint"}}}"""),
+            ["description"] = "Scan a public website and return its agent-readiness score out of 100, a letter grade, and the fixes ranked by points gained, each with a prompt you can apply. Use it before shipping a site that agents will read or call.",
+            ["inputSchema"] = JsonNode.Parse("""{"type":"object","properties":{"url":{"type":"string","description":"The http or https address of the site to check"},"format":{"type":"string","enum":["full","agent"],"description":"full (default) returns every finding; agent returns the grade, categories and ranked fixes only"}},"required":["url"]}"""),
+            ["outputSchema"] = JsonNode.Parse("""{"type":"object","properties":{"score":{"type":"integer","description":"Score from 0 to 100"},"grade":{"type":"string","description":"Letter grade A to F"},"fixes":{"type":"array","description":"Failing checks ranked by points gained, each with a prompt to apply"},"findings":{"type":"array","description":"What to fix, each with an ID, severity and fix hint"}}}"""),
             ["annotations"] = JsonNode.Parse("""{"readOnlyHint":true,"destructiveHint":false,"idempotentHint":true,"openWorldHint":true}"""),
         };
     }

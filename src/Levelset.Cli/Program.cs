@@ -16,6 +16,8 @@ internal static class Cli
           --update-baseline       write the current result to the baseline file and exit 0
           --json <file>           write the full report
           --markdown <file>       write the new/fixed findings table
+          --agent <file>          write the agent format: ranked fixes with a prompt each
+          --format <text|agent>   what to print: text (default on a terminal) or agent JSON (default when piped)
           --mcp <url>             MCP endpoint to check when the site does not advertise one
           --paid-path <path>      path to probe for an x402 402 challenge (repeatable)
           --facilitator <url>     x402 facilitator for the /supported check
@@ -65,8 +67,18 @@ internal static class Cli
             var baseline = File.Exists(o.BaselinePath) ? Baseline.Parse(await File.ReadAllTextAsync(o.BaselinePath)) : null;
             var gate = Gate.Evaluate(report, baseline, new GateOptions(o.FailBelow, o.FailOnDrop, o.FailOn));
             await Emit(o, report, gate);
+            var agent = AgentReport.From(report);
+            if (AgentReport.ChooseFormat(o.Format, Console.IsOutputRedirected) == "agent")
+            {
+                Console.WriteLine(agent.ToJson());
+                Console.Error.WriteLine($"Levelset {report.Score}/100 grade {report.Grade}: {(gate.Passed ? "passed" : "failed")}");
+                foreach (var r in gate.Reasons) Console.Error.WriteLine("  " + r);
+                return gate.Passed ? 0 : 1;
+            }
+
             Console.WriteLine($"Levelset {report.Score}/100 grade {report.Grade}: {(gate.Passed ? "passed" : "failed")}");
             foreach (var r in gate.Reasons) Console.WriteLine("  " + r);
+            foreach (var f in agent.Fixes.Take(5)) Console.WriteLine($"  +{f.Gain:0.0} {f.Id} {f.Title}");
             return gate.Passed ? 0 : 1;
         }
         catch (Exception e) when (e is ArgumentException or FormatException or InvalidDataException or IOException or JsonException or UriFormatException)
@@ -78,6 +90,7 @@ internal static class Cli
     private static async Task Emit(Options o, Report report, GateResult gate)
     {
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web) { WriteIndented = true };
+        if (o.Agent is not null) await File.WriteAllTextAsync(o.Agent, AgentReport.From(report).ToJson());
         if (o.Json is not null) await File.WriteAllTextAsync(o.Json, JsonSerializer.Serialize(report, options));
         var markdown = Gate.Markdown(report, gate);
         if (o.Markdown is not null) await File.WriteAllTextAsync(o.Markdown, markdown);
@@ -95,11 +108,11 @@ internal static class Cli
 
     private sealed record Options(
         string Url, int FailBelow, int? FailOnDrop, string FailOn, string BaselinePath, bool UpdateBaseline,
-        string? Json, string? Markdown, string? Mcp, List<string> PaidPaths, string? Facilitator, bool NoBrowser, bool PublicOnly);
+        string? Json, string? Markdown, string? Agent, string? Format, string? Mcp, List<string> PaidPaths, string? Facilitator, bool NoBrowser, bool PublicOnly);
 
     private static Options Parse(string[] a)
     {
-        string? url = null, json = null, md = null, mcp = null, fac = null;
+        string? url = null, json = null, md = null, mcp = null, fac = null, agent = null, format = null;
         var failBelow = 0;
         int? drop = null;
         var failOn = "error";
@@ -121,6 +134,11 @@ internal static class Cli
                 case "--update-baseline": update = true; break;
                 case "--json": json = Next(); break;
                 case "--markdown": md = Next(); break;
+                case "--agent": agent = Next(); break;
+                case "--format":
+                    format = Next();
+                    AgentReport.ChooseFormat(format, false);
+                    break;
                 case "--mcp": mcp = Next(); break;
                 case "--paid-path": paid.Add(Next()); break;
                 case "--facilitator": fac = Next(); break;
@@ -134,6 +152,6 @@ internal static class Cli
         }
 
         return new Options(url ?? throw new ArgumentException("a url is required"), failBelow, drop, failOn, baseline, update,
-            json, md, mcp, paid, fac, noBrowser, publicOnly);
+            json, md, agent, format, mcp, paid, fac, noBrowser, publicOnly);
     }
 }

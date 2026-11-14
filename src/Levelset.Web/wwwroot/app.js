@@ -16,18 +16,41 @@ function el(tag, text, cls) {
   return node;
 }
 
+function copyButton(label, text) {
+  const b = el('button', label, 'copy');
+  b.type = 'button';
+  b.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      b.textContent = 'Copied';
+    } catch {
+      b.textContent = 'Copy failed';
+    }
+    setTimeout(() => { b.textContent = label; }, 2000);
+  });
+  return b;
+}
+
 function render(report) {
   result.replaceChildren();
-  result.append(el('p', report.score + ' / 100, grade ' + report.grade, 'score'));
+  result.append(el('p', report.grade + ' ' + report.score + ' / 100', 'score'));
   const cats = Object.entries(report.categories).filter(([, v]) => v !== null).map(([k, v]) => k + ' ' + v);
   result.append(el('p', cats.join(', ')));
   if (report.findings.length === 0) result.append(el('p', 'No findings.'));
+  const fixes = report.fixes || [];
+  if (fixes.length > 0) {
+    const all = 'Make ' + report.url + ' more ready for AI agents. Apply these fixes in order, then re-run the check.\n\n'
+      + fixes.slice(0, 10).map((f, i) => (i + 1) + '. ' + f.prompt).join('\n\n');
+    result.append(copyButton('Copy a prompt for all ' + Math.min(fixes.length, 10) + ' fixes', all));
+  }
   for (const f of report.findings) {
     const d = document.createElement('details');
-    d.append(el('summary', f.id + ' ' + f.severity + ': ' + f.target + ' ' + f.message, f.severity));
+    const gain = f.gain > 0 ? ' (+' + f.gain.toFixed(1) + ' points)' : '';
+    d.append(el('summary', f.id + ' ' + f.severity + ': ' + f.target + ' ' + f.message + gain, f.severity));
     d.append(el('p', f.fix.text));
     if (f.fix.snippet) d.append(el('pre', f.fix.snippet));
     if (f.fix.dotnet) d.append(el('pre', f.fix.dotnet));
+    if (f.fix.prompt) d.append(copyButton('Copy prompt for your coding agent', f.fix.prompt));
     const a = el('a', 'spec');
     a.href = f.spec;
     d.append(a);
@@ -64,10 +87,18 @@ if (document.modelContext && document.modelContext.registerTool) {
       type: 'object',
       properties: {
         score: { type: 'integer', description: 'Score from 0 to 100' },
+        grade: { type: 'string', description: 'Letter grade A to F' },
+        fixes: { type: 'array', description: 'Failing checks ranked by points gained, each with a prompt to apply' },
         findings: { type: 'array', description: 'What to fix, each with an ID, severity and fix hint' },
       },
     },
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     execute: async ({ url }) => ({ content: [{ type: 'text', text: JSON.stringify(await run(url)) }] }),
   });
+}
+
+const preset = new URLSearchParams(location.search).get('url');
+if (preset) {
+  document.getElementById('url').value = preset;
+  form.requestSubmit();
 }

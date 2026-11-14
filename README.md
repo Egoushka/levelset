@@ -33,6 +33,25 @@ warning 4, info 0; a check backed by a draft or vendor spec costs at most 3 (all
 is the weighted mean of the categories that apply: WebMCP 30, MCP 20, x402 15 (only when the site has a paid
 surface), Discovery 25, Hygiene 10. A category with nothing to check has no score and its weight goes to the rest.
 
+## Fixes an agent can apply
+
+Every finding carries `gain`, the points of the total that fixing its check adds, and `fix.prompt`, an instruction a
+coding agent can apply (the site, the check, where it failed, the fix, a snippet, the spec and a done condition). The
+report also has `fixes`: one entry per failing check, ranked by gain, with a prompt each.
+
+The agent format is the same data, smaller: grade, decision (`passed` is false when any error-level finding exists),
+each category with its grade and weight, the ranked fixes and one prompt covering the top ten.
+
+| Where | How |
+|---|---|
+| API | `GET /api/v1/check?url=...&format=agent` |
+| MCP | `check_site` with `{"url": "...", "format": "agent"}` |
+| CLI | `levelset check <url> --format agent`; JSON is the default when stdout is piped, `--agent <file>` writes it |
+| Action | output `agent-report` is the file path; the PR comment lists points per new finding and a prompt for them |
+| Badge | `GET /badge.svg?url=...` returns an SVG with the grade; link it to `/?url=...` |
+
+Spec and acceptance checks: [docs/specs/agent-output.md](docs/specs/agent-output.md).
+
 ## Checks
 
 | Category | IDs |

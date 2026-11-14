@@ -1,6 +1,6 @@
 # Levelset
 
-> Checks how ready a website is for AI agents and returns a score out of 100 with a fix for every finding.
+> Checks how ready a website is for AI agents and returns a score out of 100, a letter grade, and the fixes ranked by points gained, each with a prompt a coding agent can apply.
 
 ## Use it
 

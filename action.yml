@@ -50,6 +50,9 @@ outputs:
   grade:
     description: The letter grade.
     value: ${{ steps.check.outputs.grade }}
+  agent-report:
+    description: Path to the agent-format JSON (ranked fixes, each with a prompt for a coding agent).
+    value: ${{ steps.check.outputs.agent }}
 runs:
   using: composite
   steps:
@@ -93,7 +96,8 @@ runs:
         BROWSER: ${{ inputs.browser }}
       run: |
         args=(check "$TARGET" --fail-below "$FAIL_BELOW" --fail-on "$FAIL_ON" --baseline "$BASELINE"
-          --json "$RUNNER_TEMP/levelset-report.json" --markdown "$RUNNER_TEMP/levelset-comment.md")
+          --format text --json "$RUNNER_TEMP/levelset-report.json" --markdown "$RUNNER_TEMP/levelset-comment.md"
+          --agent "$RUNNER_TEMP/levelset-agent.json")
         [ -n "$FAIL_ON_DROP" ] && args+=(--fail-on-drop "$FAIL_ON_DROP")
         [ "$UPDATE" = "true" ] && args+=(--update-baseline)
         [ -n "$MCP" ] && args+=(--mcp "$MCP")
@@ -103,6 +107,7 @@ runs:
         status=0
         "$RUNNER_TEMP/levelset/levelset" "${args[@]}" || status=$?
         echo "status=$status" >> "$GITHUB_OUTPUT"
+        echo "agent=$RUNNER_TEMP/levelset-agent.json" >> "$GITHUB_OUTPUT"
         exit 0
     - name: Comment on the pull request
       if: inputs.comment == 'true' && github.event_name == 'pull_request'

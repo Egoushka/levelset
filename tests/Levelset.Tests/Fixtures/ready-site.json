@@ -1,0 +1,9 @@
+{
+  "url": "https://ready.test/",
+  "routes": {
+    "/": { "status": 200, "contentType": "text/html", "body": "<html><head><title>Ready</title><script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"WebSite\",\"name\":\"Ready\"}</script></head><body><main><h1>Ready</h1><p>A site that is written for agents and people alike, with enough server rendered text for a fetch to read.</p></main></body></html>", "headers": { "link": "</llms.txt>; rel=\"llms-txt\"" } },
+    "/robots.txt": { "status": 200, "contentType": "text/plain", "body": "User-agent: *\nAllow: /\n\nContent-Signal: search=yes, ai-input=yes, ai-train=no\n\nSitemap: https://ready.test/sitemap.xml\n" },
+    "/sitemap.xml": { "status": 200, "contentType": "application/xml", "body": "<?xml version=\"1.0\"?><urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\"><url><loc>https://ready.test/</loc></url></urlset>" },
+    "/llms.txt": { "status": 200, "contentType": "text/markdown", "body": "# Ready\n\n> A site for agents.\n\n- [Home](/)\n" }
+  }
+}
