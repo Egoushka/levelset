@@ -1,0 +1,6 @@
+{
+  "url": "https://bare.test/",
+  "routes": {
+    "/": { "status": 200, "contentType": "text/html", "body": "<html><head><title>Bare</title></head><body><div id=\"root\"></div></body></html>" }
+  }
+}

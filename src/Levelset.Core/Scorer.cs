@@ -36,6 +36,13 @@ public static class Scorer
     public static (int Total, Dictionary<string, int?> Categories) Score(
         IReadOnlySet<Category> applicable, IEnumerable<CheckInfo> failed)
     {
+        var (exact, categories) = ScoreExact(applicable, failed);
+        return ((int)Math.Round(exact, MidpointRounding.AwayFromZero), categories);
+    }
+
+    public static (double Total, Dictionary<string, int?> Categories) ScoreExact(
+        IReadOnlySet<Category> applicable, IEnumerable<CheckInfo> failed)
+    {
         var losses = failed.GroupBy(c => c.Category).ToDictionary(g => g.Key, g => g.Sum(Loss));
         var categories = new Dictionary<string, int?>();
         double weighted = 0;
@@ -54,9 +61,13 @@ public static class Scorer
             weights += weight;
         }
 
-        var total = weights == 0 ? 100 : (int)Math.Round(weighted / weights, MidpointRounding.AwayFromZero);
-        return (total, categories);
+        return (weights == 0 ? 100 : weighted / weights, categories);
     }
+
+    /// <summary>Points of the total that fixing this one check would add, to one decimal.</summary>
+    public static double Gain(IReadOnlySet<Category> applicable, IReadOnlyList<CheckInfo> failed, CheckInfo check) =>
+        Math.Round(ScoreExact(applicable, failed.Where(c => c.Id != check.Id)).Total - ScoreExact(applicable, failed).Total,
+            1, MidpointRounding.AwayFromZero);
 
     public static string Grade(int score) => score switch
     {

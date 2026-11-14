@@ -7,7 +7,7 @@ namespace Levelset.Tests;
 /// <summary>Levelset must score 100 on itself: the dogfood gate.</summary>
 public class DogfoodTests(Xunit.Abstractions.ITestOutputHelper output)
 {
-    [Fact]
+    [Fact, Ac("AC-DOG-1")]
     public async Task LevelsetScoresAHundredOnItself()
     {
         var app = Site.Build(["--urls", "http://127.0.0.1:0", "--Levelset:AllowPrivate=true", "--Levelset:DailyLimit=0"]);

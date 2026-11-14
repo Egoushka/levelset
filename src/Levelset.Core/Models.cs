@@ -20,9 +20,14 @@ public sealed record CheckInfo(
     string? FixSnippet = null,
     string? FixDotNet = null);
 
-public sealed record Fix(string Text, string? Snippet = null, string? DotNet = null);
+public sealed record Fix(string Text, string? Snippet = null, string? DotNet = null, string? Prompt = null);
 
-public sealed record Finding(string Id, string Severity, string Target, string Message, Fix Fix, string Spec);
+public sealed record Finding(string Id, string Severity, string Target, string Message, Fix Fix, string Spec, double Gain = 0);
+
+/// <summary>One failing check, with every place it failed, ranked by the points fixing it adds.</summary>
+public sealed record RankedFix(
+    int Rank, string Id, string Title, string Severity, string Category, double Gain,
+    IReadOnlyList<string> Targets, string Prompt);
 
 public sealed record BrowserInfo(string Mode, string? Chrome);
 
@@ -35,7 +40,8 @@ public sealed record Report(
     IReadOnlyList<Finding> Findings,
     IReadOnlyList<string> Passed,
     BrowserInfo? Browser,
-    long DurationMs)
+    long DurationMs,
+    IReadOnlyList<RankedFix>? Fixes = null)
 {
     public const string SchemaId = "levelset/v1";
 }

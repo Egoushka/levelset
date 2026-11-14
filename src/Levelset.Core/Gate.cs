@@ -33,6 +33,8 @@ public sealed record GateResult(
 
 public static class Gate
 {
+    public const int MaxShown = 10;
+
     private static int Rank(string severity) => severity switch { "error" => 2, "warning" => 1, _ => 0 };
 
     /// <summary>
@@ -74,9 +76,19 @@ public static class Gate
         if (g.Reasons.Count > 0) sb.AppendLine();
         if (g.New.Count > 0)
         {
-            sb.AppendLine("New findings\n\n| ID | Severity | Where | What | Fix |\n|---|---|---|---|---|");
-            foreach (var f in g.New) sb.AppendLine($"| {f.Id} | {f.Severity} | {Cell(f.Target)} | {Cell(f.Message)} | {Cell(f.Fix.Text)} |");
+            sb.AppendLine("New findings\n\n| ID | Severity | Points | Where | What | Fix |\n|---|---|---|---|---|---|");
+            var shown = g.New.OrderByDescending(f => f.Gain).Take(MaxShown).ToList();
+            foreach (var f in shown) sb.AppendLine($"| {f.Id} | {f.Severity} | +{f.Gain:0.0} | {Cell(f.Target)} | {Cell(f.Message)} | {Cell(f.Fix.Text)} |");
+            if (g.New.Count > shown.Count) sb.AppendLine($"\n{g.New.Count - shown.Count} more not shown.");
             sb.AppendLine();
+            var prompts = shown.Where(f => f.Fix.Prompt is not null).OrderByDescending(f => f.Gain)
+                .Select(f => (f.Id + " " + f.Target, f.Fix.Prompt!)).ToList();
+            if (prompts.Count > 0)
+            {
+                sb.AppendLine("<details><summary>Prompt for your coding agent</summary>\n\n````text");
+                sb.AppendLine(FixPrompts.Combine(report.Url, prompts, MaxShown));
+                sb.AppendLine("````\n\n</details>\n");
+            }
         }
 
         if (g.Fixed.Count > 0)

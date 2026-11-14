@@ -9,6 +9,9 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Fixtures\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
     <Using Include="Xunit" />
     <ProjectReference Include="..\..\src\Levelset.Core\Levelset.Core.csproj" />
     <ProjectReference Include="..\..\src\Levelset.Browser\Levelset.Browser.csproj" />
