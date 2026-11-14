@@ -50,7 +50,11 @@ namespace Levelset.Web
             {
                 Report? report = null;
                 try { report = await svc.CheckAsync(url, Client(ctx), ct); }
-                catch (CheckException) { }
+                catch (CheckException)
+                {
+                    // A refused, limited or unreachable URL is shown as an "unknown" badge, never as an error body.
+                    report = null;
+                }
                 ctx.Response.Headers.CacheControl = report is null ? "no-store" : "public, max-age=600";
                 return Results.Content(Badge.Svg(report), "image/svg+xml");
             });
