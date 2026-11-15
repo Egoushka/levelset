@@ -218,6 +218,24 @@ public class AgentOutputTests
         finally { http.Dispose(); await app.StopAsync(); }
     }
 
+    [Fact, Ac("AC-BADGE-2")]
+    public async Task BadgeKeepsLastScoreWhenTheDailyLimitIsSpentAndTheCacheIsCold()
+    {
+        var app = Levelset.Web.Site.Build(["--urls", "http://127.0.0.1:0", "--Levelset:AllowPrivate=true", "--Levelset:DailyLimit=1", "--Levelset:CacheSeconds=0"]);
+        await app.StartAsync();
+        var http = new HttpClient { BaseAddress = new Uri(app.Urls.First()) };
+        try
+        {
+            var target = Uri.EscapeDataString(http.BaseAddress + "robots.txt");
+            Assert.Equal(200, (int)(await http.GetAsync($"/api/v1/check?url={target}")).StatusCode);
+            Assert.Equal(429, (int)(await http.GetAsync($"/api/v1/check?url={target}")).StatusCode);
+            var badge = await http.GetStringAsync($"/badge.svg?url={target}");
+            Assert.Matches(@"agent ready: [A-F] \d+", badge);
+            Assert.DoesNotContain("unknown", badge);
+        }
+        finally { http.Dispose(); await app.StopAsync(); }
+    }
+
     [Fact]
     public void BadgeEscapesNothingItCannotControl()
     {

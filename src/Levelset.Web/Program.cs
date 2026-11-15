@@ -49,7 +49,7 @@ namespace Levelset.Web
             app.MapGet("/badge.svg", async (string? url, HttpContext ctx, CheckService svc, CancellationToken ct) =>
             {
                 Report? report = null;
-                try { report = await svc.CheckAsync(url, Client(ctx), ct); }
+                try { report = await svc.BadgeAsync(url, Client(ctx), ct); }
                 catch (CheckException)
                 {
                     // A refused, limited or unreachable URL is shown as an "unknown" badge, never as an error body.

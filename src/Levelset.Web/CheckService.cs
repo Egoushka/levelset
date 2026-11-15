@@ -14,7 +14,22 @@ public sealed class CheckService(Scanner scanner, IMemoryCache cache, IConfigura
     private readonly SemaphoreSlim _gate = new(config.GetValue("Levelset:MaxConcurrent", 2));
     private readonly ConcurrentDictionary<string, int> _used = new();
     private readonly int _dailyLimit = config.GetValue("Levelset:DailyLimit", 10);
+    private readonly ConcurrentDictionary<string, Report> _last = new();
+    private readonly TimeSpan _ttl = TimeSpan.FromSeconds(config.GetValue("Levelset:CacheSeconds", 600));
     private readonly bool _allowPrivate = config.GetValue("Levelset:AllowPrivate", false);
+
+    /// <summary>
+    /// A badge read: a fresh scan when the client may still scan, else the last score seen for the address.
+    /// Image proxies share one client for every reader, so a badge must not depend on that client's daily limit.
+    /// </summary>
+    public async Task<Report?> BadgeAsync(string? raw, string client, CancellationToken ct)
+    {
+        try { return await CheckAsync(raw, client, ct); }
+        catch (CheckException e) when (e.Status is 429 or 504 && Uri.TryCreate(raw, UriKind.Absolute, out var u) && _last.TryGetValue(u.ToString(), out var last))
+        {
+            return last;
+        }
+    }
 
     public async Task<Report> CheckAsync(string? raw, string client, CancellationToken ct)
     {
@@ -39,7 +54,9 @@ public sealed class CheckService(Scanner scanner, IMemoryCache cache, IConfigura
             using var budget = CancellationTokenSource.CreateLinkedTokenSource(ct);
             budget.CancelAfter(TimeSpan.FromSeconds(60));
             var report = await scanner.ScanAsync(url, new ScanOptions { AllowPrivate = _allowPrivate }, budget.Token);
-            cache.Set(key, report, TimeSpan.FromMinutes(10));
+            if (_ttl > TimeSpan.Zero) cache.Set(key, report, _ttl);
+            if (_last.Count >= 5000) _last.Clear();
+            _last[key] = report;
             return report;
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)

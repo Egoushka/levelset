@@ -43,6 +43,7 @@ Each is a test carrying `[Ac("<id>")]`; `SpecTests` fails when an id here has no
 - AC-MCP-1: `check_site` with `format: agent` returns the agent format; the tool schema lists `format`.
 - AC-ACT-1: the PR comment lists gain per new finding and a prompt block, capped at 10 findings.
 - AC-P04-1: `/badge.svg?url=` returns an SVG with the grade and score; an unreachable or refused URL returns a grey "unknown" badge, never an error body.
+- AC-BADGE-2: a badge read does not depend on the caller's daily scan limit: when the limit is spent and the 10 minute cache is cold, `/badge.svg` shows the last score seen for that address, not "unknown".
 - AC-DOG-1: Levelset still scores 100 on itself (`DogfoodTests`).
 
 ## Not in this change
